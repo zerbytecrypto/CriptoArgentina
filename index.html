@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cripto Argentina — Compra y vende criptomonedas en pesos</title>
+<style>
+  :root{
+    --celeste:#74ACDF;
+    --celeste-dark:#4A8BC2;
+    --celeste-deep:#2C5F8A;
+    --sun:#F6B40E;
+    --sun-dark:#C98A05;
+    --white:#FFFFFF;
+    --ink:#0F2136;
+    --ink-soft:#3E5A75;
+    --ice:#EAF3FB;
+    --line:#C9DDF0;
+    --radius:14px;
+    --shadow:0 10px 30px rgba(15,33,54,.10);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html{scroll-behavior:smooth}
+
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--white);
+    line-height:1.6;
+  }
+
+  .wrap{width:min(1140px,92vw);margin:0 auto}
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex;align-items:center;gap:2rem;height:74px}
+  .logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.15rem;letter-spacing:-.02em}
+  .logo-mark{
+    width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 50% 45%,var(--sun) 0 38%,var(--celeste-dark) 39% 100%);
+    box-shadow:inset 0 0 0 3px var(--white),0 2px 8px rgba(116,172,223,.5);
+  }
+  .nav-links{display:flex;gap:1.7rem;margin-left:auto;font-size:.94rem;font-weight:500}
+  .nav-links a{color:var(--ink-soft);text-decoration:none;transition:color .18s}
+  .nav-links a:hover{color:var(--celeste-deep)}
+
+  .btn{
+    display:inline-block;border:none;cursor:pointer;
+    font:inherit;font-weight:700;text-decoration:none;
+    border-radius:999px;padding:.72rem 1.5rem;
+    transition:transform .15s,box-shadow .15s,background .18s;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn-primary{
+    background:linear-gradient(135deg,var(--celeste),var(--celeste-dark));
+    color:var(--white);box-shadow:0 6px 18px rgba(74,139,194,.4);
+  }
+  .btn-primary:hover{box-shadow:0 10px 26px rgba(74,139,194,.5)}
+  .btn-sun{
+    background:linear-gradient(135deg,var(--sun),var(--sun-dark));
+    color:#3a2900;box-shadow:0 6px 18px rgba(246,180,14,.4);
+  }
+  .btn-ghost{
+    background:transparent;color:var(--celeste-deep);
+    box-shadow:inset 0 0 0 2px var(--celeste);
+  }
+
+  .menu-toggle{display:none;margin-left:auto;font-size:1.6rem;background:none;border:none;color:var(--ink)}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;overflow:hidden;
+    background:linear-gradient(180deg,var(--celeste) 0%,var(--ice) 55%,var(--white) 100%);
+    padding:5.5rem 0 4.5rem;
+    text-align:center;
+  }
+  .hero::after{
+    content:"";position:absolute;inset:auto 0 0 0;height:120px;
+    background:linear-gradient(0deg,var(--white),transparent);
+    pointer-events:none;
+  }
+  .hero-sun{
+    width:92px;height:92px;margin:0 auto 1.6rem;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,#FFD968 0 30%,var(--sun) 60%,var(--sun-dark) 100%);
+    box-shadow:0 0 0 8px rgba(246,180,14,.22),0 0 0 20px rgba(246,180,14,.10);
+    animation:pulse 4s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 8px rgba(246,180,14,.22),0 0 0 20px rgba(246,180,14,.10)}
+    50%{box-shadow:0 0 0 12px rgba(246,180,14,.28),0 0 0 28px rgba(246,180,14,.06)}
+  }
+  .badge{
+    display:inline-block;background:rgba(255,255,255,.75);
+    border:1px solid var(--line);border-radius:999px;
+    padding:.35rem 1rem;font-size:.82rem;font-weight:600;color:var(--celeste-deep);
+    margin-bottom:1.2rem;
+  }
+  .hero h1{
+    font-size:clamp(2.1rem,5.2vw,3.6rem);
+    line-height:1.12;letter-spacing:-.03em;font-weight:800;
+    max-width:16ch;margin:0 auto .9rem;
+  }
+  .hero h1 span{color:var(--celeste-deep)}
+  .hero p{max-width:56ch;margin:0 auto 2rem;color:var(--ink-soft);font-size:1.08rem}
+  .hero-actions{display:flex;gap:.9rem;justify-content:center;flex-wrap:wrap}
+
+  /* ---------- TRUST STRIP ---------- */
+  .trust{border-block:1px solid var(--line);background:var(--white)}
+  .trust-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:1rem;padding:1.6rem 0;text-align:center;
+  }
+  .trust-grid div strong{display:block;font-size:1.35rem;color:var(--celeste-deep)}
+  .trust-grid div span{font-size:.84rem;color:var(--ink-soft)}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:4.5rem 0}
+  .section-head{text-align:center;max-width:60ch;margin:0 auto 2.8rem}
+  .section-head h2{font-size:clamp(1.6rem,3.4vw,2.3rem);letter-spacing:-.025em;margin-bottom:.6rem}
+  .section-head p{color:var(--ink-soft)}
+  .eyebrow{
+    display:block;font-size:.78rem;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--sun-dark);margin-bottom:.5rem;
+  }
+
+  /* ---------- CARDS ---------- */
+  .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.4rem}
+  .card{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    padding:1.8rem;box-shadow:var(--shadow);
+    transition:transform .2s,border-color .2s;
+  }
+  .card:hover{transform:translateY(-4px);border-color:var(--celeste)}
+  .card-icon{
+    width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+    background:var(--ice);color:var(--celeste-deep);font-size:1.35rem;margin-bottom:1rem;
+  }
+  .card h3{font-size:1.08rem;margin-bottom:.45rem}
+  .card p{font-size:.93rem;color:var(--ink-soft)}
+
+  /* ---------- MARKET TABLE ---------- */
+  .market{background:var(--ice)}
+  .table-shell{
+    background:var(--white);border:1px solid var(--line);
+    border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+  }
+  table{width:100%;border-collapse:collapse;font-size:.94rem}
+  thead{background:linear-gradient(135deg,var(--celeste),var(--celeste-dark));color:var(--white)}
+  th{text-align:left;padding:.95rem 1.1rem;font-weight:600;font-size:.82rem;letter-spacing:.04em;text-transform:uppercase}
+  th:last-child,td:last-child{text-align:right}
+  td{padding:1rem 1.1rem;border-top:1px solid var(--line)}
+  tbody tr:hover{background:#F7FBFF}
+  .coin{display:flex;align-items:center;gap:.7rem;font-weight:600}
+  .coin-dot{
+    width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+    font-size:.72rem;font-weight:800;color:var(--white);
+  }
+  .up{color:#137A4B;font-weight:700}
+  .down{color:#B3261E;font-weight:700}
+  .ars{font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+
+  /* ---------- CONVERTER ---------- */
+  .converter{
+    background:linear-gradient(135deg,var(--celeste-deep),var(--celeste-dark));
+    color:var(--white);
+  }
+  .converter .section-head h2,.converter .section-head p{color:var(--white)}
+  .converter .section-head p{opacity:.85}
+  .convert-box{
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
+    border-radius:var(--radius);padding:1.8rem;backdrop-filter:blur(6px);
+    display:grid;grid-template-columns:1fr auto 1fr;gap:1.2rem;align-items:end;
+  }
+  .field label{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;opacity:.85;margin-bottom:.5rem}
+  .field input,.field select{
+    width:100%;padding:.85rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.4);
+    background:rgba(255,255,255,.95);color:var(--ink);font:inherit;font-weight:600;
+  }
+  .swap{
+    width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--sun);color:#3a2900;font-size:1.25rem;font-weight:800;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+  }
+  .rate-note{text-align:center;margin-top:1.1rem;font-size:.86rem;opacity:.8}
+
+  /* ---------- STEPS ---------- */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.4rem;counter-reset:s}
+  .step{position:relative;padding-top:3.4rem}
+  .step::before{
+    counter-increment:s;content:counter(s);
+    position:absolute;top:0;left:0;
+    width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--celeste),var(--celeste-dark));
+    color:var(--white);font-weight:800;font-size:1.05rem;
+  }
+  .step h3{font-size:1.05rem;margin-bottom:.4rem}
+  .step p{font-size:.93rem;color:var(--ink-soft)}
+
+  /* ---------- CTA BAND ---------- */
+  .cta-band{
+    background:linear-gradient(135deg,var(--sun) 0%,var(--sun-dark) 100%);
+    color:#33240a;text-align:center;
+  }
+  .cta-band h2{font-size:clamp(1.6rem,3.4vw,2.2rem);margin-bottom:.7rem;letter-spacing:-.025em}
+  .cta-band p{max-width:52ch;margin:0 auto 1.8rem;opacity:.85}
+  .cta-band .btn{background:var(--celeste-deep);color:var(--white);box-shadow:0 8px 22px rgba(44,95,138,.45)}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--ink);color:#B9CBDD;padding:3.2rem 0 1.6rem;font-size:.9rem}
+  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:2rem;margin-bottom:2.4rem}
+  footer h4{color:var(--white);font-size:.84rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.9rem}
+  footer ul{list-style:none;display:grid;gap:.5rem}
+  footer a{color:#B9CBDD;text-decoration:none}
+  footer a:hover{color:var(--celeste)}
+  .foot-logo{display:flex;align-items:center;gap:.6rem;color:var(--white);font-weight:800;margin-bottom:.8rem}
+  .foot-bottom{
+    border-top:1px solid #24405C;padding-top:1.4rem;
+    display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.82rem;
+  }
+  .risk{
+    background:#16283C;border-radius:10px;padding:1rem 1.2rem;
+    font-size:.79rem;line-height:1.55;color:#93A9C0;margin-bottom:2.4rem;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media(max-width:860px){
+    .nav-links{
+      position:absolute;top:74px;left:0;right:0;
+      background:var(--white);border-bottom:1px solid var(--line);
+      flex-direction:column;gap:0;padding:.5rem 0;display:none;
+    }
+    .nav-links.open{display:flex}
+    .nav-links a{padding:.85rem 6vw}
+    .menu-toggle{display:block}
+    .nav .btn{display:none}
+    .trust-grid{grid-template-columns:repeat(2,1fr);gap:1.4rem}
+    .convert-box{grid-template-columns:1fr;text-align:left}
+    .swap{margin:0 auto;transform:rotate(90deg)}
+    .foot-grid{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:600px){
+    .hero{padding:3.5rem 0 3rem}
+    section{padding:3.2rem 0}
+    table{font-size:.86rem}
+    th,td{padding:.7rem .6rem}
+    .foot-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="#" class="logo"><span class="logo-mark"></span>Cripto&nbsp;Argentina</a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#mercado">Mercado</a>
+      <a href="#convertir">Convertir</a>
+      <a href="#como">Cómo funciona</a>
+      <a href="#nosotros">Nosotros</a>
+    </nav>
+    <a href="#empezar" class="btn btn-primary">Crear cuenta</a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-sun"></div>
+    <span class="badge">🇦🇷 Hecho en Argentina · Pesos y cripto en un solo lugar</span>
+    <h1>Tu cripto, en <span>pesos argentinos</span></h1>
+    <p>Compra, vende y resguarda Bitcoin, Ethereum y stablecoins con transferencias locales, cotización en tiempo real y comisiones claras. Sin vueltas, sin letra chica.</p>
+    <div class="hero-actions">
+      <a href="#empezar" class="btn btn-sun">Empezar gratis</a>
+      <a href="#mercado" class="btn btn-ghost">Ver el mercado</a>
+    </div>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="wrap trust-grid">
+    <div><strong>+480.000</strong><span>Usuarios en el país</span></div>
+    <div><strong>24/7</strong><span>Operaciones y soporte</span></div>
+    <div><strong>0,45%</strong><span>Comisión por operación</span></div>
+    <div><strong>&lt;5 min</strong><span>Acreditación de pesos</span></div>
+  </div>
+</div>
+
+<section id="mercado" class="market">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Mercado en vivo</span>
+      <h2>Cotizaciones en pesos</h2>
+      <p>Precios de referencia actualizados cada minuto. Operá al instante desde tu cuenta.</p>
+    </div>
+    <div class="table-shell">
+      <table>
+        <thead>
+          <tr>
+            <th>Activo</th>
+            <th>Precio (ARS)</th>
+            <th>24 h</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="marketBody">
+          <tr>
+            <td><div class="coin"><span class="coin-dot" style="background:#F6B40E">₿</span>Bitcoin <span class="ars">BTC</span></div></td>
+            <td class="ars">$ 118.940.500</td>
+            <td class="up">+2,41%</td>
+            <td><a href="#empezar" class="btn btn-ghost" style="padding:.45rem 1.1rem;font-size:.85rem">Comprar</a></td>
+          </tr>
+          <tr>
+            <td><div class="coin"><span class="coin-dot" style="background:#4A8BC2">Ξ</span>Ethereum <span class="ars">ETH</span></div></td>
+            <td class="ars">$ 4.186.200</td>
+            <td class="down">−1,08%</td>
+            <td><a href="#empezar" class="btn btn-ghost" style="padding:.45rem 1.1rem;font-size:.85rem">Comprar</a></td>
+          </tr>
+          <tr>
+            <td><div class="coin"><span class="coin-dot" style="background:#2C5F8A">$</span>USDT <span class="ars">Stablecoin</span></div></td>
+            <td class="ars">$ 1.284,75</td>
+            <td class="up">+0,12%</td>
+            <td><a href="#empezar" class="btn btn-ghost" style="padding:.45rem 1.1rem;font-size:.85rem">Comprar</a></td>
+          </tr>
+          <tr>
+            <td><div class="coin"><span class="coin-dot" style="background:#74ACDF">◎</span>Solana <span class="ars">SOL</span></div></td>
+            <td class="ars">$ 218.430</td>
+            <td class="up">+5,67%</td>
+            <td><a href="#empezar" class="btn btn-ghost" style="padding:.45rem 1.1rem;font-size:.85rem">Comprar</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="convertir" class="converter">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow" style="color:#FFD968">Calculadora</span>
+      <h2>Convertí al instante</h2>
+      <p>Mirá cuánto sale tu operación antes de confirmarla.</p>
+    </div>
+    <div class="convert-box">
+      <div class="field">
+        <label for="amount">Vos entregás</label>
+        <input type="number" id="amount" value="100000" min="0" step="1000">
+      </div>
+      <button class="swap" id="swapBtn" aria-label="Invertir">⇅</button>
+      <div class="field">
+        <label for="result">Vos recibís (estimado)</label>
+        <input type="text" id="result" value="0,000841 BTC" readonly>
+      </div>
+    </div>
+    <p class="rate-note" id="rateNote">1 BTC ≈ $ 118.940.500 ARS · referencia informativa, no constituye cotización en firme.</p>
+  </div>
+</section>
+
+<section id="como">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Simple de verdad</span>
+      <h2>Cómo funciona</h2>
+      <p>Tres pasos y ya estás operando.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Creá tu cuenta</h3>
+        <p>Con DNI y una selfie. La verificación tarda menos de 5 minutos.</p>
+      </div>
+      <div class="step">
+        <h3>Cargá pesos</h3>
+        <p>Transferencia bancaria, CBU/CVU o efectivo en puntos de carga de todo el país.</p>
+      </div>
+      <div class="step">
+        <h3>Comprá y guardá</h3>
+        <p>Elegí tu activo y listo. Podés dejarlo en custodia o retirarlo a tu wallet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="nosotros" style="background:var(--ice)">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Por qué elegirnos</span>
+      <h2>Pensado para Argentina</h2>
+      <p>Entendemos cómo se mueve la plata acá.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h3>Custodia segura</h3>
+        <p>El 95% de los fondos se guarda en almacenamiento en frío con firma multiparte y auditorías externas trimestrales.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💸</div>
+        <h3>Pesos sin fricción</h3>
+        <p>Acreditación inmediata por transferencia y retiros a cualquier banco del sistema. Sin comisiones ocultas.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">☀️</div>
+        <h3>Soporte local</h3>
+        <p>Atención en español, todos los días, de un equipo que vive y opera en el país.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <h3>Precios transparentes</h3>
+        <p>Ves el precio final antes de confirmar. Comisión fija del 0,45% por operación.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏛️</div>
+        <h3>Registro local</h3>
+        <p>Operamos bajo el marco de registro de proveedores de servicios de activos virtuales vigente en el país.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>Retiros rápidos</h3>
+        <p>Transferencias a wallets externas en minutos, con red y comisión de red detalladas de antemano.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band" id="empezar">
+  <div class="wrap">
+    <h2>Empezá con $1.000 y probá sin riesgo</h2>
+    <p>Crear la cuenta es gratis y no tiene costo de mantenimiento.</p>
+    <a href="#" class="btn btn-primary">Crear mi cuenta</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-logo"><span class="logo-mark" style="width:28px;height:28px"></span>Cripto Argentina</div>
+        <p>Plataforma de compra y venta de activos virtuales para usuarios residentes en Argentina.</p>
+      </div>
+      <div>
+        <h4>Producto</h4>
+        <ul><li><a href="#mercado">Mercado</a></li><li><a href="#convertir">Calculadora</a></li><li><a href="#como">Cómo funciona</a></li></ul>
+      </div>
+      <div>
+        <h4>Empresa</h4>
+        <ul><li><a href="#nosotros">Nosotros</a></li><li><a href="#">Términos</a></li><li><a href="#">Privacidad</a></li></ul>
+      </div>
+      <div>
+        <h4>Ayuda</h4>
+        <ul><li><a href="#">Centro de ayuda</a></li><li><a href="#">Contacto</a></li><li><a href="#">Estado del servicio</a></li></ul>
+      </div>
+    </div>
+    <div class="risk">
+      <strong>Aviso de riesgo:</strong> operar con activos virtuales implica riesgos, incluida la pérdida total del capital invertido. Los precios son volátiles y las cotizaciones mostradas son de referencia. Esta página es una maqueta de diseño con datos ilustrativos y no ofrece servicios financieros reales ni constituye asesoramiento de inversión.
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Cripto Argentina — Todos los derechos reservados.</span>
+      <span>Buenos Aires · Argentina</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Menú móvil
+  const toggle = document.getElementById('menuToggle');
+  const links  = document.getElementById('navLinks');
+  toggle.addEventListener('click', () => links.classList.toggle('open'));
+  links.addEventListener('click', e => { if (e.target.tagName === 'A') links.classList.remove('open'); });
+
+  // Calculadora ARS -> cripto
+  const RATES = { BTC: 118940500, ETH: 4186200, USDT: 1284.75, SOL: 218430 };
+  const ORDER = ['BTC', 'ETH', 'USDT', 'SOL'];
+  const nf = n => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let amount = 100000;
+  let coinIdx = 0;
+  let toArs = true;   // true: ARS -> cripto
+
+  const input  = document.getElementById('amount');
+  const output = document.getElementById('result');
+  const note   = document.getElementById('rateNote');
+  const swap   = document.getElementById('swapBtn');
+
+  function render(){
+    const coin = ORDER[coinIdx];
+    const rate = RATES[coin];
+    if (toArs) {
+      const amt = parseFloat(input.value) || 0;
+      output.value = (amt / rate).toLocaleString('es-AR', { maximumFractionDigits: 8 }) + ' ' + coin;
+      note.textContent = `1 ${coin} ≈ $ ${nf(rate)} ARS · referencia informativa, no constituye cotización en firme.`;
+    } else {
+      const amt = parseFloat(input.value) || 0;
+      output.value = '$ ' + nf(amt * rate) + ' ARS';
+      note.textContent = `1 ${coin} ≈ $ ${nf(rate)} ARS · referencia informativa, no constituye cotización en firme.`;
+    }
+  }
+
+  swap.addEventListener('click', () => { toArs = !toArs; render(); });
+  input.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>
