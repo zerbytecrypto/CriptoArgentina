@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel — Cripto Argentina</title>
+<link rel="stylesheet" href="dash.css">
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <a href="index.html" class="brand"><span class="logo-mark"></span><span>Cripto&nbsp;Argentina</span></a>
+    <nav>
+      <a href="#" class="active" data-view="resumen">Resumen</a>
+      <a href="#" data-view="futuros">Futuros</a>
+      <a href="#" data-view="spot">Spot</a>
+      <a href="#" data-view="movimientos">Movimientos</a>
+      <a href="admin.html" class="admin-only hidden">Administración</a>
+    </nav>
+    <div class="side-foot">
+      <div class="who"><strong id="userName">—</strong><span id="userEmail">—</span></div>
+      <button class="btn-ghost" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="viewTitle">Resumen</h1>
+        <p id="viewSub">Tu cuenta en un vistazo.</p>
+      </div>
+      <button class="btn-sun" id="newTradeBtn">+ Nueva operación</button>
+    </header>
+
+    <!-- RESUMEN -->
+    <section class="view" id="view-resumen">
+      <div class="stats">
+        <div class="stat"><span>Saldo disponible</span><strong id="statBalance">$ 0,00</strong></div>
+        <div class="stat"><span>Margen en uso</span><strong id="statMargin">$ 0,00</strong></div>
+        <div class="stat"><span>PnL no realizado</span><strong id="statPnl">$ 0,00</strong></div>
+        <div class="stat"><span>Posiciones abiertas</span><strong id="statOpen">0</strong></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Posiciones abiertas</h2></div>
+        <div id="resumenPositions"></div>
+      </div>
+    </section>
+
+    <!-- FUTUROS -->
+    <section class="view hidden" id="view-futuros">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Futuros perpetuos</h2>
+          <div class="seg" id="sideFilter">
+            <button class="active" data-side="all">Todas</button>
+            <button data-side="long">Long</button>
+            <button data-side="short">Short</button>
+          </div>
+        </div>
+        <div id="futuresTable"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Abrir posición</h2></div>
+        <form id="tradeForm" class="trade-form">
+          <div class="field">
+            <label for="market">Mercado</label>
+            <select id="market"></select>
+          </div>
+          <div class="field">
+            <label for="side">Dirección</label>
+            <select id="side">
+              <option value="long">Long (sube)</option>
+              <option value="short">Short (baja)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="leverage">Apalancamiento: <b id="levLabel">10×</b></label>
+            <input type="range" id="leverage" min="1" max="125" step="1" value="10">
+          </div>
+          <div class="field">
+            <label for="margin">Margen (ARS)</label>
+            <input type="number" id="margin" min="1000" step="1000" value="50000">
+          </div>
+          <div class="preview" id="preview"></div>
+          <button class="btn-sun" type="submit" id="openBtn">Confirmar posición</button>
+        </form>
+        <div class="msg" id="tradeMsg"></div>
+      </div>
+    </section>
+
+    <!-- SPOT -->
+    <section class="view hidden" id="view-spot">
+      <div class="panel">
+        <div class="panel-head"><h2>Mercado spot</h2></div>
+        <div class="table-shell" id="spotTable"></div>
+      </div>
+    </section>
+
+    <!-- MOVIMIENTOS -->
+    <section class="view hidden" id="view-movimientos">
+      <div class="panel">
+        <div class="panel-head"><h2>Historial de posiciones</h2></div>
+        <div id="historyTable"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { supabase, requireAuth, signOut, ARS } from './shared.js';
+import { RATES, MARKETS } from './config.js';
+
+const ctx = await requireAuth('login.html');
+if (!ctx) throw new Error('sin sesión');
+const { user, profile } = ctx;
+
+const $ = id => document.getElementById(id);
+$('userName').textContent  = profile.full_name || 'Sin nombre';
+$('userEmail').textContent = user.email;
+$('statBalance').textContent = ARS(profile.balance_ars);
+if (profile.role === 'admin') document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+
+$('logoutBtn').onclick = signOut;
+
+/* ---------- navegación ---------- */
+const TITLES = {
+  resumen: ['Resumen', 'Tu cuenta en un vistazo.'],
+  futuros: ['Futuros', 'Operá con apalancamiento en pesos.'],
+  spot:    ['Spot', 'Cotizaciones de referencia.'],
+  movimientos: ['Movimientos', 'Todas tus posiciones, abiertas y cerradas.'],
+};
+document.querySelectorAll('.side nav a[data-view]').forEach(a => {
+  a.onclick = e => {
+    e.preventDefault();
+    const v = a.dataset.view;
+    document.querySelectorAll('.side nav a').forEach(x => x.classList.toggle('active', x === a));
+    document.querySelectorAll('.view').forEach(s => s.classList.toggle('hidden', s.id !== 'view-' + v));
+    [$('viewTitle').textContent, $('viewSub').textContent] = TITLES[v];
+  };
+});
+
+/* ---------- datos ---------- */
+let positions = [];
+let sideFilter = 'all';
+
+async function loadPositions(){
+  const { data, error } = await supabase
+    .from('futures_positions')
+    .select('*')
+    .order('opened_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  positions = data || [];
+  render();
+}
+
+function markPrice(symbol){
+  const m = MARKETS.find(x => x.symbol === symbol);
+  return m ? m.price : 0;
+}
+
+function computePnl(p){
+  const mark = markPrice(p.symbol) || p.entry_price;
+  const dir = p.side === 'long' ? 1 : -1;
+  return (mark - p.entry_price) * p.size * dir;
+}
+
+function badge(text, cls){ return `<span class="tag ${cls}">${text}</span>`; }
+
+function positionsHtml(list){
+  if (!list.length) return `<div class="empty">Todavía no tenés posiciones. Abrí la primera desde <b>Futuros</b>.</div>`;
+  return `
+  <div class="table-shell">
+  <table>
+    <thead><tr>
+      <th>Mercado</th><th>Dirección</th><th>Apal.</th><th>Entrada</th>
+      <th>Margen</th><th>PnL</th><th>Estado</th><th>Acción</th>
+    </tr></thead>
+    <tbody>${list.map(p => {
+      const pnl = computePnl(p);
+      const cls = pnl >= 0 ? 'up' : 'down';
+      const lev = Number(p.leverage).toFixed(0);
+      const action = p.status === 'open'
+        ? `<button class="mini danger" data-close="${p.id}">Cerrar</button>`
+        : `<span class="ars">—</span>`;
+      return `<tr>
+        <td><b>${p.symbol}</b></td>
+        <td>${badge(p.side === 'long' ? 'Long' : 'Short', p.side)}</td>
+        <td>${lev}×</td>
+        <td class="ars">${ARS(p.entry_price)}</td>
+        <td class="ars">${ARS(p.margin_ars)}</td>
+        <td class="${cls}">${pnl >= 0 ? '+' : '−'}${ARS(Math.abs(pnl)).replace('$ ','$ ')}</td>
+        <td>${badge(p.status, p.status)}</td>
+        <td>${action}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function render(){
+  const open = positions.filter(p => p.status === 'open');
+
+  // stats
+  const margin = open.reduce((s, p) => s + Number(p.margin_ars), 0);
+  const pnl = open.reduce((s, p) => s + computePnl(p), 0);
+  $('statMargin').textContent = ARS(margin);
+  $('statOpen').textContent = open.length;
+  const pnlEl = $('statPnl');
+  pnlEl.textContent = (pnl >= 0 ? '+' : '−') + ARS(Math.abs(pnl));
+  pnlEl.className = pnl >= 0 ? 'up' : 'down';
+
+  // vistas
+  $('resumenPositions').innerHTML = positionsHtml(open.slice(0, 4));
+  const filtered = sideFilter === 'all' ? positions : positions.filter(p => p.side === sideFilter);
+  $('futuresTable').innerHTML = positionsHtml(filtered);
+  $('historyTable').innerHTML = positionsHtml(positions);
+
+  // spot
+  $('spotTable').innerHTML = `
+    <table><thead><tr><th>Activo</th><th>Precio (ARS)</th><th>Acción</th></tr></thead>
+    <tbody>${MARKETS.map(m => `<tr>
+      <td><b>${m.symbol}</b></td>
+      <td class="ars">${ARS(m.price)}</td>
+      <td><button class="mini" data-trade="${m.symbol}">Operar</button></td>
+    </tr>`).join('')}</tbody></table>`;
+
+  // cerrar posición
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.onclick = () => closePosition(Number(btn.dataset.close));
+  });
+  document.querySelectorAll('[data-trade]').forEach(btn => {
+    btn.onclick = () => {
+      $('market').value = btn.dataset.trade;
+      document.querySelector('.side nav a[data-view="futuros"]').click();
+      updatePreview();
+    };
+  });
+}
+
+async function closePosition(id){
+  const p = positions.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`¿Cerrar la posición ${p.side.toUpperCase()} en ${p.symbol}?`)) return;
+  const pnl = computePnl(p);
+  const { error } = await supabase.from('futures_positions')
+    .update({ status: 'closed', mark_price: markPrice(p.symbol), pnl_ars: pnl, closed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { alert(error.message); return; }
+  await loadPositions();
+}
+
+/* ---------- formulario de operación ---------- */
+const marketSel = $('market');
+marketSel.innerHTML = MARKETS.map(m => `<option value="${m.symbol}">${m.symbol} · ${ARS(m.price)}</option>`).join('');
+
+const lev = $('leverage'), margin = $('margin'), sideSel = $('side');
+
+function updatePreview(){
+  $('levLabel').textContent = lev.value + '×';
+  const m = MARKETS.find(x => x.symbol === marketSel.value);
+  const marginVal = Number(margin.value) || 0;
+  const notional = marginVal * Number(lev.value);
+  const size = m ? notional / m.price : 0;
+  $('preview').innerHTML = `
+    <div><span>Poder de compra</span><strong>${ARS(notional)}</strong></div>
+    <div><span>Tamaño</span><strong>${size.toFixed(6)} ${m?.base ?? ''}</strong></div>
+    <div><span>Liquidación aprox.</span><strong>${ARS(marginVal * 0.9)}</strong></div>`;
+}
+[lev, margin, marketSel].forEach(el => el.addEventListener('input', updatePreview));
+updatePreview();
+
+$('sideFilter').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  sideFilter = e.target.dataset.side;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === e.target));
+  render();
+});
+
+$('newTradeBtn').onclick = () => {
+  document.querySelector('.side nav a[data-view="futuros"]').click();
+  $('margin').focus();
+};
+
+$('tradeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('tradeMsg');
+  msg.className = 'msg';
+  const btn = $('openBtn');
+  btn.disabled = true;
+
+  const m = MARKETS.find(x => x.symbol === marketSel.value);
+  const marginVal = Number(margin.value);
+  const levVal = Number(lev.value);
+
+  if (marginVal < 1000) {
+    msg.textContent = 'El margen mínimo es de $1.000 ARS.';
+    msg.className = 'msg show err'; btn.disabled = false; return;
+  }
+
+  const { error } = await supabase.from('futures_positions').insert({
+    user_id: user.id,
+    symbol: m.symbol,
+    side: sideSel.value,
+    leverage: levVal,
+    margin_ars: marginVal,
+    entry_price: m.price,
+    mark_price: m.price,
+    size: (marginVal * levVal) / m.price,
+    status: 'open',
+    pnl_ars: 0
+  });
+
+  btn.disabled = false;
+  if (error) {
+    msg.textContent = error.message;
+    msg.className = 'msg show err';
+    return;
+  }
+  msg.textContent = `Posición ${sideSel.value.toUpperCase()} abierta en ${m.symbol} con ${levVal}×.`;
+  msg.className = 'msg show ok';
+  await loadPositions();
+});
+
+loadPositions();
+</script>
+</body>
+</html>
