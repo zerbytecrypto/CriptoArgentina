@@ -1,6 +1,7 @@
 // shared.js
-import { createClient } from '[cdn.jsdelivr.net](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
+
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 export const ARS = n => '$ ' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
