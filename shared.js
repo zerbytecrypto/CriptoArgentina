@@ -1,5 +1,5 @@
 // shared.js
-import { createClient } from '[cdn.jsdelivr.net](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm)';
+import { createClient } from '[cdn.jsdelivr.net](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)';
 import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
