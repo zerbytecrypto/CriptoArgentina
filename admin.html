@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administración — Cripto Argentina</title>
+<link rel="stylesheet" href="dash.css">
+<style>
+  .admin-tag{display:inline-block;background:var(--sun);color:#3a2900;font-size:.7rem;font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;padding:.2rem .6rem;border-radius:999px;margin-bottom:.5rem}
+  .toolbar{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;padding:1.2rem 1.4rem;border-bottom:1px solid var(--line)}
+  .toolbar input,.toolbar select{padding:.7rem .9rem;border-radius:10px;border:1px solid var(--line);font:inherit;font-weight:600}
+  .toolbar input[type=search]{flex:1;min-width:200px}
+  .edit-row{background:#F7FBFF}
+  .edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;padding:1rem 1.4rem}
+  .edit-grid label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);display:block;margin-bottom:.3rem}
+  .edit-grid input,.edit-grid select{width:100%;padding:.6rem .8rem;border-radius:9px;border:1px solid var(--line);font:inherit}
+  .edit-actions{display:flex;gap:.6rem;padding:0 1.4rem 1.2rem}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <a href="index.html" class="brand"><span class="logo-mark"></span><span>Cripto&nbsp;Argentina</span></a>
+    <nav>
+      <a href="dashboard.html">← Volver al panel</a>
+      <a href="#" class="active">Usuarios</a>
+    </nav>
+    <div class="side-foot">
+      <div class="who"><strong>Administración</strong><span id="adminEmail">—</span></div>
+      <button class="btn-ghost" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <span class="admin-tag">Solo administradores</span>
+        <h1>Usuarios</h1>
+        <p>Consultá y modificá la información de todas las cuentas.</p>
+      </div>
+      <button class="btn-sun" id="refreshBtn">Actualizar</button>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><span>Usuarios totales</span><strong id="sTotal">0</strong></div>
+      <div class="stat"><span>Activos</span><strong id="sActive">0</strong></div>
+      <div class="stat"><span>Suspendidos</span><strong id="sSusp">0</strong></div>
+      <div class="stat"><span>Balance agregado</span><strong id="sBal">$ 0,00</strong></div>
+    </section>
+
+    <div class="panel">
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Buscar por nombre, email o CUIT…">
+        <select id="roleFilter">
+          <option value="all">Todos los roles</option>
+          <option value="user">Usuarios</option>
+          <option value="admin">Administradores</option>
+        </select>
+        <select id="statusFilter">
+          <option value="all">Todos los estados</option>
+          <option value="active">Activos</option>
+          <option value="suspended">Suspendidos</option>
+        </select>
+      </div>
+      <div id="usersTable"></div>
+    </div>
+    <div class="msg" id="msg"></div>
+  </main>
+</div>
+
+<script type="module">
+import { supabase, requireAdmin, signOut, ARS } from './shared.js';
+
+const ctx = await requireAdmin('login.html');
+if (!ctx) throw new Error('acceso restringido');
+$('adminEmail') && ($('adminEmail').textContent = ctx.user.email);
+
+function $(id){ return document.getElementById(id); }
+let users = [];
+let editing = null;
+
+$('logoutBtn').onclick = signOut;
+$('refreshBtn').onclick = load;
+
+function show(text, kind = 'ok'){
+  const el = $('msg');
+  el.textContent = text;
+  el.className = 'msg show ' + kind;
+  setTimeout(() => el.className = 'msg', 4000);
+}
+
+async function load(){
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { show(error.message, 'err'); return; }
+  users = data || [];
+  render();
+}
+
+function filtered(){
+  const q = $('search').value.trim().toLowerCase();
+  const role = $('roleFilter').value;
+  const status = $('statusFilter').value;
+  return users.filter(u => {
+    if (role !== 'all' && u.role !== role) return false;
+    if (status !== 'all' && u.status !== status) return false;
+    if (!q) return true;
+    return [u.full_name, u.email, u.cuit].some(v => (v || '').toLowerCase().includes(q));
+  });
+}
+
+function render(){
+  const list = filtered();
+
+  $('sTotal').textContent  = users.length;
+  $('sActive').textContent = users.filter(u => u.status === 'active').length;
+  $('sSusp').textContent   = users.filter(u => u.status === 'suspended').length;
+  $('sBal').textContent    = ARS(users.reduce((s, u) => s + Number(u.balance_ars || 0), 0));
+
+  if (!list.length){
+    $('usersTable').innerHTML = `<div class="empty">No hay usuarios que coincidan con el filtro.</div>`;
+    return;
+  }
+
+  $('usersTable').innerHTML = `
+  <table>
+    <thead><tr>
+      <th>Usuario</th><th>CUIT</th><th>Rol</th><th>Estado</th><th>Balance</th><th>Alta</th><th>Acciones</th>
+    </tr></thead>
+    <tbody>
+    ${list.map(u => {
+      if (editing === u.id) return editRow(u);
+      return `<tr>
+        <td><b>${esc(u.full_name) || '—'}</b><br><span class="ars" style="font-size:.82rem">${esc(u.email) || '—'}</span></td>
+        <td class="ars">${esc(u.cuit) || '—'}</td>
+        <td><span class="tag ${u.role === 'admin' ? 'open' : 'closed'}">${u.role}</span></td>
+        <td><span class="tag ${u.status === 'active' ? 'long' : u.status === 'suspended' ? 'short' : 'closed'}">${u.status}</span></td>
+        <td class="ars">${ARS(u.balance_ars)}</td>
+        <td class="ars">${new Date(u.created_at).toLocaleDateString('es-AR')}</td>
+        <td>
+          <button class="mini" data-edit="${u.id}">Editar</button>
+          <button class="mini danger" data-del="${u.id}">Eliminar</button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+
+  document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { editing = b.dataset.edit; render(); });
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => remove(b.dataset.del));
+  document.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { editing = null; render(); });
+  document.querySelectorAll('[data-save]').forEach(b => b.onclick = () => save(b.dataset.save));
+}
+
+function esc(s){ return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function editRow(u){
+  return `<tr class="edit-row"><td colspan="7">
+    <div class="edit-grid">
+      <div><label>Nombre</label><input id="e-name" value="${esc(u.full_name)}"></div>
+      <div><label>CUIT</label><input id="e-cuit" value="${esc(u.cuit)}"></div>
+      <div><label>Teléfono</label><input id="e-phone" value="${esc(u.phone)}"></div>
+      <div><label>Rol</label><select id="e-role">
+        <option value="user"  ${u.role === 'user'  ? 'selected' : ''}>user</option>
+        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
+      </select></div>
+      <div><label>Estado</label><select id="e-status">
+        <option value="active"    ${u.status === 'active'    ? 'selected' : ''}>active</option>
+        <option value="pending"   ${u.status === 'pending'   ? 'selected' : ''}>pending</option>
+        <option value="suspended" ${u.status === 'suspended' ? 'selected' : ''}>suspended</option>
+      </select></div>
+      <div><label>Balance (ARS)</label><input id="e-balance" type="number" step="0.01" value="${Number(u.balance_ars)}"></div>
+    </div>
+    <div class="edit-actions">
+      <button class="mini" data-save="${u.id}">Guardar cambios</button>
+      <button class="mini danger" data-cancel="1">Cancelar</button>
+    </div>
+  </td></tr>`;
+}
+
+async function save(id){
+  const patch = {
+    full_name:  $('e-name').value.trim(),
+    cuit:       $('e-cuit').value.trim(),
+    phone:      $('e-phone').value.trim(),
+    role:       $('e-role').value,
+    status:     $('e-status').value,
+    balance_ars: Number($('e-balance').value) || 0,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await supabase.from('profiles').update(patch).eq('id', id);
+  if (error) { show(error.message, 'err'); return; }
+  editing = null;
+  show('Cambios guardados.');
+  await load();
+}
+
+async function remove(id){
+  const u = users.find(x => x.id === id);
+  if (!confirm(`¿Eliminar la cuenta de ${u?.email || 'este usuario'}? Esta acción borra su perfil.`)) return;
+  const { error } = await supabase.from('profiles').delete().eq('id', id);
+  if (error) { show(error.message, 'err'); return; }
+  show('Usuario eliminado.');
+  await load();
+}
+
+['search','roleFilter','statusFilter'].forEach(id => {
+  $(id).addEventListener('input', render);
+  $(id).addEventListener('change', render);
+});
+
+load();
+</script>
+</body>
+</html>
